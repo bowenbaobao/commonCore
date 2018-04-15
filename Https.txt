@@ -1,0 +1,312 @@
+package com.sekorm.common.component.http;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+import org.apache.http.entity.mime.content.ByteArrayBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.sekorm.common.exception.HttpException;
+
+/**
+ * @desc: 封装HttpClient来对外提供简化的HTTP请求
+ * @User: ambitor_luo
+ * @Date: 2015/7/6
+ */
+public class Https {
+
+    private static Integer socketTimeout = 5000;
+    private static Integer connectTimeout = 5000;
+    private static Integer connectionRequestTimeout = 5000;
+
+    /**
+     * 使用Get方式 根据URL地址，获取ResponseContent对象
+     * @param url 完整的URL地址
+     * @return ResponseMessage 如果发生异常则返回null，否则返回ResponseContent对象
+     */
+    public static ResponseMessage get(String url) {
+        HttpClientWrapper hw = new HttpClientWrapper(connectionRequestTimeout, connectTimeout, socketTimeout);
+        ResponseMessage response = null;
+        try {
+            response = hw.getResponse(url);
+        } catch (Exception e) {
+            logger.error("GET请求发送失败:", e);
+            throw new HttpException("GET请求发送失败:", e);
+        }
+        return response;
+    }
+
+    /**
+     * 使用Get方式 根据URL地址，获取ResponseContent对象
+     * @param url 完整的URL地址
+     * @return ResponseMessage 如果发生异常则返回null，否则返回ResponseContent对象
+     */
+    public static ResponseMessage get(String url, Integer socketTimeout1,
+                                      Integer connectTimeout1, Integer connectionRequestTimeout1) {
+        socketTimeout1 = socketTimeout1 == null ? socketTimeout : socketTimeout1;
+        connectTimeout1 = connectTimeout1 == null ? connectTimeout : connectTimeout1;
+        connectionRequestTimeout1 = connectionRequestTimeout1 == null ? connectionRequestTimeout : connectionRequestTimeout1;
+        HttpClientWrapper hw = new HttpClientWrapper(connectionRequestTimeout1, connectTimeout1, socketTimeout1);
+        ResponseMessage response = null;
+        try {
+            response = hw.getResponse(url);
+        } catch (Exception e) {
+            logger.error("GET请求发送失败:", e);
+            throw new HttpException("GET请求发送失败:", e);
+        }
+        return response;
+    }
+
+    /**
+     * 使用Get方式 根据URL地址，获取ResponseContent对象
+     *
+     * @param url       请求URL
+     * @param paramsMap 参数和值
+     * @return
+     */
+    public static ResponseMessage get(String url, Map<String, Object> paramsMap) {
+        if (paramsMap != null) {
+            if (!paramsMap.isEmpty()) url = url.endsWith("?") ? url : (url + "?");
+            for (Map.Entry<String, Object> entry : paramsMap.entrySet()) {
+                url += entry.getKey() + "=" + String.valueOf(entry.getValue()) + "&";
+            }
+            url = url.endsWith("&") ? url.substring(0, url.length() - 1) : url;
+        }
+        return get(url);
+    }
+
+    /**
+     * 使用Get方式 根据URL地址，获取ResponseContent对象
+     *
+     * @param url         完整的URL地址
+     * @param urlEncoding 编码，可以为null
+     * @return ResponseMessage 如果发生异常则返回null，否则返回ResponseContent对象
+     */
+    public static ResponseMessage get(String url, String urlEncoding) {
+        HttpClientWrapper hw = new HttpClientWrapper(connectionRequestTimeout, connectTimeout, socketTimeout);
+        ResponseMessage response = null;
+        try {
+            response = hw.getResponse(url, urlEncoding);
+        } catch (Exception e) {
+            logger.error("GET请求发送失败:", e);
+            throw new HttpException("GET请求发送失败:", e);
+        }
+        return response;
+    }
+
+    /**
+     * 将参数拼装在url中，进行post请求。
+     *
+     * @param url
+     * @return
+     */
+    public static ResponseMessage post(String url) {
+        HttpClientWrapper hw = new HttpClientWrapper();
+        ResponseMessage ret = null;
+        try {
+            setParams(url, hw);
+            ret = hw.postNV(url);
+        } catch (Exception e) {
+            logger.error("POST请求发送失败:", e);
+            throw new HttpException("POST请求发送失败:", e);
+        }
+        return ret;
+    }
+
+    /**
+     * 将参数拼装在url中，进行post请求。
+     *
+     * @param url
+     * @return
+     */
+    public static ResponseMessage post(String url, Map<String, Object> paramsMap) {
+        try {
+            HttpClientWrapper hw = getClient(url, paramsMap, socketTimeout, connectTimeout, connectionRequestTimeout);
+            return hw.postNV(url);
+        } catch (Exception e) {
+            logger.error("POST请求发送失败:", e);
+            throw new HttpException("POST请求发送失败:", e);
+        }
+    }
+
+    /**
+     * 将参数拼装在url中，进行post请求。
+     *
+     * @param url
+     * @return
+     */
+    public static ResponseMessage post(String url, Map<String, Object> paramsMap, Integer socketTimeout1,
+                                       Integer connectTimeout1, Integer connectionRequestTimeout1) {
+        try {
+            HttpClientWrapper hw = getClient(url, paramsMap, socketTimeout1, connectTimeout1, connectionRequestTimeout1);
+            return hw.postNV(url);
+        } catch (Exception e) {
+            logger.error("POST请求发送失败:", e);
+            throw new HttpException("POST请求发送失败:", e);
+        }
+    }
+
+    /**
+     * 上传文件（包括图片）
+     *
+     * @param url       请求URL
+     * @param paramsMap 参数和值
+     * @return
+     */
+    public static ResponseMessage postForm(String url, Map<String, Object> paramsMap) {
+        try {
+            HttpClientWrapper hw = getClient(url, paramsMap, socketTimeout, connectTimeout, connectionRequestTimeout);
+            return hw.postEntity(url);
+        } catch (Exception e) {
+            logger.error("POST请求发送失败:", e);
+            throw new HttpException("POST请求发送失败:", e);
+        }
+    }
+
+    private static HttpClientWrapper getClient(String url, Map<String, Object> paramsMap, Integer socketTimeout1,
+                                               Integer connectTimeout1, Integer connectionRequestTimeout1) {
+        socketTimeout1 = socketTimeout1 == null ? socketTimeout : socketTimeout1;
+        connectTimeout1 = connectTimeout1 == null ? connectTimeout : connectTimeout1;
+        connectionRequestTimeout1 = connectionRequestTimeout1 == null ? connectionRequestTimeout : connectionRequestTimeout1;
+        HttpClientWrapper hw = new HttpClientWrapper(connectionRequestTimeout1, connectTimeout1, socketTimeout1);
+        setParams(url, hw);
+        if (paramsMap != null) {
+            Iterator<String> iterator = paramsMap.keySet().iterator();
+            while (iterator.hasNext()) {
+                String key = iterator.next();
+                Object value = paramsMap.get(key);
+                if (value instanceof File) {
+                    FileBody fileBody = new FileBody((File) value);
+                    hw.getContentBodies().add(fileBody);
+                } else if (value instanceof byte[]) {
+                    byte[] byteVlue = (byte[]) value;
+                    ByteArrayBody byteArrayBody = new ByteArrayBody(byteVlue, key);
+                    hw.getContentBodies().add(byteArrayBody);
+                } else {
+                    if (value != null && !"".equals(value)) {
+                        hw.addNV(key, String.valueOf(value));
+                    } else {
+                        hw.addNV(key, "");
+                    }
+                }
+            }
+        }
+        return hw;
+    }
+
+    /**
+     * 使用post方式，发布对象转成的json给Rest服务。
+     *
+     * @param url
+     * @param jsonBody
+     * @return
+     */
+    public static ResponseMessage postJson(String url, String jsonBody) {
+        try {
+            return postEntity(url, jsonBody, "application/json");
+        } catch (Exception e) {
+            logger.error("JSON POST请求发送失败:", e);
+            throw new HttpException("JSON POST请求发送失败:", e);
+        }
+    }
+
+    /**
+     * 使用post方式，发布对象转成的xml给Rest服务
+     *
+     * @param url     URL地址
+     * @param xmlBody xml文本字符串
+     * @return ResponseMessage 正常则返回ResponseContent对象
+     */
+    public static ResponseMessage psotXml(String url, String xmlBody) {
+        try {
+            return postEntity(url, xmlBody, "application/xml");
+        } catch (Exception e) {
+            logger.error("XML POST请求发送失败:", e);
+            throw new HttpException("XML POST请求发送失败:", e);
+        }
+    }
+
+    //-------------------------------------  Private Method
+
+    private static ResponseMessage postEntity(String url, String body, String contentType) throws IOException, org.apache.http.HttpException {
+        HttpClientWrapper hw = new HttpClientWrapper();
+        hw.addNV("body", body);
+        return hw.postNV(url, contentType);
+    }
+
+    private static void setParams(String url, HttpClientWrapper hw) {
+        String[] paramStr = url.split("[?]", 2);
+        if (paramStr == null || paramStr.length != 2) {
+            return;
+        }
+        String[] paramArray = paramStr[1].split("[&]");
+        if (paramArray == null) {
+            return;
+        }
+        for (String param : paramArray) {
+            if (param == null || "".equals(param.trim())) {
+                continue;
+            }
+            String[] keyValue = param.split("[=]", 2);
+            if (keyValue == null || keyValue.length != 2) {
+                continue;
+            }
+            hw.addNV(keyValue[0], keyValue[1]);
+        }
+    }
+
+    private final static Logger logger = LoggerFactory.getLogger(Https.class);
+
+    //----------------------------------- Test Method
+    public static void main(String[] args) {
+//        testPost();
+        //testGet();
+        //testUploadFile();
+        String str = "http://localhost:8080/recom/v2/portal/getWebPortalNews";
+        Map<String, Object> params = new HashMap<>();
+        params.put("memId", "");
+        params.put("pageNum", 1);
+        params.put("pageSize", 20);
+        params.put("queryType", 2);
+        System.out.println(get(str, params).getContent());
+    }
+
+    //test
+    public static void testGet() {
+        String url = "http://www.baidu.com/";
+        ResponseMessage responseMessage = get(url);
+        System.out.println(responseMessage.getContent());
+    }
+
+    private static void testPost() {
+        String url = "http://localhost:8080/bdm/loga/insertSendLog";
+        Map<String, Object> params = new HashMap<>();
+        params.put("sendLog", "测试角色");
+        params.put("rolename", "测试角色");
+        params.put("id", "119");
+        ResponseMessage responseMessage = post(url, params);
+        System.out.println(responseMessage.getContent());
+    }
+
+    //test
+    public static void testUploadFile() {
+        try {
+            String url = "http://localhost:8280/jfly/action/admin/user/upload.do";
+            Map<String, Object> paramsMap = new HashMap<String, Object>();
+            paramsMap.put("userName", "jj");
+            paramsMap.put("password", "jj");
+            paramsMap.put("filePath", new File("C:\\Users\\yangjian1004\\Pictures\\default (1).jpeg"));
+            ResponseMessage ret = post(url, paramsMap);
+            System.out.println(ret.getContent());
+        } catch (Exception e) {
+            logger.error("请求发送失败:", e);
+            throw new HttpException("请求发送失败:", e);
+        }
+    }
+
+}
