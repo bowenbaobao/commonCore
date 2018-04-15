@@ -1,0 +1,71 @@
+package com.sekorm.common.security.util;
+
+import javax.servlet.http.HttpServletRequest;
+
+public class AddressUtils {
+	private AddressUtils(){};
+	
+	/**
+	 * 获取访问后缀
+	 *
+	 * @author charles_shang
+	 * @date 2016年7月27日
+	 *
+	 * @param request
+	 * @return
+	 */
+	public static String getUriExt(HttpServletRequest request){
+		String ext = "";
+		String address = getOriAddress(request);
+		if(address.lastIndexOf(".") > 0) {
+			ext = address.substring(address.lastIndexOf(".") + 1);
+		}
+		
+		return ext;
+	}
+	
+	/**
+	 * 刨除项目名后的路径
+	 *
+	 * @author charles_shang
+	 * @date 2016年7月27日
+	 *
+	 * @param request
+	 * @return
+	 */
+	public static String getUriAddress(HttpServletRequest request){
+		String address = getOriAddress(request);
+		if(address.indexOf("/") != -1) {
+			return address.substring(0, address.indexOf("/"));
+		} else {
+			return "";
+		}
+	}
+	
+	/**
+	 * 带项目名路径
+	 *
+	 * @author charles_shang
+	 * @date 2016年7月27日
+	 *
+	 * @param request
+	 * @return
+	 */
+	public static String getOriAddress(HttpServletRequest request){
+		return request.getRequestURI().replaceFirst(request.getContextPath(), "").substring(1);
+	}
+	
+	/**
+	 * 返回如Http://www.baidu.com/as/asdas样式的路径
+	 *
+	 * @author charles_shang
+	 * @date 2016年7月28日
+	 *
+	 * @param request
+	 * @return
+	 */
+	public static String getBaseAddress(HttpServletRequest request){
+		return request.getScheme() + "://" + request.getServerName() +":" + request.getServerPort()+ request.getContextPath() + "/";
+	}
+}
+
