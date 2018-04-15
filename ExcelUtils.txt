@@ -1,0 +1,402 @@
+package com.sekorm.common.util.excel;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.List;
+import java.util.Map;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import com.sekorm.common.util.DateTimeUtils;
+
+
+/**
+ * 
+ * @author lanva_xu
+ *
+ */
+public class ExcelUtils {
+
+	/**
+	 * @describe 导出数据到excel表
+	 * @auto lanva_xu
+	 * @date 2015年3月31日
+	 * @param sheetName 第一个sheet名称
+	 * @param list 导出数据
+	 * @param titles 表格标题
+	 * @param fieldNames 取值列名
+	 * @return
+	 */
+	public static HSSFWorkbook exportExcel(String sheetName,List<Map<Object, Object>> list,String[] titles,String[] fieldNames) {
+		
+		HSSFWorkbook wb = new HSSFWorkbook();
+		try {
+			HSSFSheet sheet = null;
+			int k = 0;
+			// 对每个表生成一个新的sheet,并以表名命名
+			if(sheetName == null){
+				sheetName = "sheet1";
+			}
+			sheet = wb.createSheet("sheet1");
+			
+			// 设置表头的说明
+			HSSFRow topRow = sheet.createRow(0);			
+			// 设置标题
+			for(int i = 0; i < titles.length; i++){
+				setCellGBKValue(topRow.createCell(i), titles[i]);
+			}
+			
+			HSSFCellStyle cellStyle = wb.createCellStyle();
+			//设置不换行
+			cellStyle.setWrapText(false);
+			
+			k = 1;
+			for (Map<Object, Object> map : list) {
+				HSSFRow row = sheet.createRow(k);
+				for(int i = 0; i < fieldNames.length; i++){
+					if(fieldNames[i].equals("number")){
+						setCellGBKValue(row.createCell(i),k+"");
+					}else{
+						//去除显示null的问题
+						Object temp = map.get(fieldNames[i]);
+						
+						// 转换为默认时间格式
+						temp = dateTimeToString(temp);											
+						
+						HSSFCell cell = row.createCell(i);
+						setCellGBKValue(cell,temp==null ? "":(temp+""));
+						cell.setCellStyle(cellStyle);
+					}
+				}
+				k++;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return wb;
+	}
+	
+	/**
+	 * @describe 导出数据到excel表
+	 * @author hawii_lai
+	 * @date 2017年10月27日
+	 * @param sheetName 第一个sheet名称
+	 * @param list 导出数据
+	 * @param titles 表格标题
+	 * @param fieldNames 取值列名
+	 * @return
+	 */
+	public static XSSFWorkbook exportXExcel(String sheetName,List<Map<Object, Object>> list,String[] titles,String[] fieldNames) {
+		
+		XSSFWorkbook wb = new XSSFWorkbook();
+		try {
+			XSSFSheet sheet = null;
+			int k = 0;
+			// 对每个表生成一个新的sheet,并以表名命名
+			if(sheetName == null){
+				sheetName = "sheet1";
+			}
+			sheet = wb.createSheet("sheet1");
+			
+			// 设置表头的说明
+			XSSFRow topRow = sheet.createRow(0);			
+			// 设置标题
+			for(int i = 0; i < titles.length; i++){
+				setCellGBKValue(topRow.createCell(i), titles[i]);
+			}
+			
+			XSSFCellStyle cellStyle = wb.createCellStyle();
+			//设置不换行
+			cellStyle.setWrapText(false);
+			
+			k = 1;
+			for (Map<Object, Object> map : list) {
+				XSSFRow row = sheet.createRow(k);
+				for(int i = 0; i < fieldNames.length; i++){
+					if(fieldNames[i].equals("number")){
+						setCellGBKValue(row.createCell(i),k+"");
+					}else{
+						//去除显示null的问题
+						Object temp = map.get(fieldNames[i]);
+						
+						// 转换为默认时间格式
+						temp = dateTimeToString(temp);											
+						
+						XSSFCell cell = row.createCell(i);
+						setCellGBKValue(cell,temp==null ? "":(temp+""));
+						cell.setCellStyle(cellStyle);
+					}
+				}
+				k++;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return wb;
+	}
+	
+	/**
+	 * @describe 导出数据到excel表,带隐藏行列
+	 * @author hawii_lai
+	 * @date 2017年11月22日
+	 * @param sheetName 第一个sheet名称
+	 * @param list 导出数据
+	 * @param titles 表格标题
+	 * @param fieldNames 取值列名
+	 * @return
+	 */
+	public static XSSFWorkbook exportXExcel(String sheetName,List<Map<Object, Object>> list,String[] titles,String[] fieldNames, Integer[] hideCols, Integer[] hideRows) {
+		
+		XSSFWorkbook wb = new XSSFWorkbook();
+		try {
+			XSSFSheet sheet = null;
+			int k = 0;
+			// 对每个表生成一个新的sheet,并以表名命名
+			if(sheetName == null){
+				sheetName = "sheet1";
+			}
+			sheet = wb.createSheet("sheet1");
+			
+			// 设置表头的说明
+			XSSFRow topRow = sheet.createRow(0);			
+			// 设置标题
+			for(int i = 0; i < titles.length; i++){
+				setCellGBKValue(topRow.createCell(i), titles[i]);
+			}
+			
+			XSSFCellStyle cellStyle = wb.createCellStyle();
+			//设置不换行
+			cellStyle.setWrapText(false);
+			
+			k = 1;
+			for (Map<Object, Object> map : list) {
+				XSSFRow row = sheet.createRow(k);
+				for(int i = 0; i < fieldNames.length; i++){
+					if(fieldNames[i].equals("number")){
+						setCellGBKValue(row.createCell(i),k+"");
+					}else{
+						//去除显示null的问题
+						Object temp = map.get(fieldNames[i]);
+						
+						// 转换为默认时间格式
+						temp = dateTimeToString(temp);											
+						
+						XSSFCell cell = row.createCell(i);
+						setCellGBKValue(cell,temp==null ? "":(temp+""));
+						cell.setCellStyle(cellStyle);
+					}
+				}
+				k++;
+			}
+			
+			//隐藏列
+			if(hideCols != null && hideCols.length > 0) {
+				for(Integer col : hideCols) {
+					sheet.setColumnHidden(col,true);
+				}
+			}
+			//隐藏列行
+			if(hideRows != null && hideRows.length > 0) {
+				for(Integer r : hideRows) {
+					XSSFRow row = sheet.getRow(r);
+					row.setZeroHeight(true);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return wb;
+	}
+	
+	
+
+	/**
+	 * 转换默认时间格式
+	 * @param temp 数据对象
+	 * @return 格式化后的时间字符
+	 */
+	private static Object dateTimeToString(Object temp) {
+		if (temp != null) {
+			/* 如时间格式，以yyyy-MM-dd HH:mm:ss格式导出 */
+			if (temp.getClass() == java.util.Date.class || temp.getClass() == java.sql.Date.class || 
+					temp.getClass() == java.sql.Timestamp.class) {
+				temp = DateTimeUtils.getDateTime((java.util.Date)temp);
+			}
+		}
+		return temp;
+	}
+	
+	/**
+	 * @Description 重写
+	 * @author lanva_xu
+	 * @date 2015年11月13日
+	 * @param sheetName 第一个sheet名称
+	 * @param list 导出数据
+	 * @param titles 表格标题
+	 * @param fieldNames 取值列名
+	 * @param infoValues 附加信息
+	 * @param startRow 从第几行开始写表格
+	 * @return
+	 */
+	public static HSSFWorkbook exportExcel(String sheetName,List<Map<Object, Object>> list,String[] titles,String[] fieldNames, List<String> infoList, Integer startRow) {
+		
+		HSSFWorkbook wb = new HSSFWorkbook();
+		try {
+			HSSFSheet sheet = null;
+			int k = 0;
+			// 对每个表生成一个新的sheet,并以表名命名
+			if(sheetName == null){
+				sheetName = "sheet1";
+			}
+			sheet = wb.createSheet("sheet1");
+			// 设置表头的说明
+			HSSFRow topRow = sheet.createRow(0);
+			HSSFCellStyle topCellStyle = wb.createCellStyle();//加粗
+			HSSFFont f = wb.createFont();
+			f.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);
+			topCellStyle.setFont(f);
+			//设置表外的附加信息
+			for(int i = 0; i < infoList.size(); i++){
+				HSSFCell cell = topRow.createCell(i);
+				//偶数加粗
+				if(i%2 == 0){
+					cell.setCellStyle(topCellStyle);
+				}
+				setCellGBKValue(cell, infoList.get(i));
+			}
+			
+			HSSFRow titleRow = sheet.createRow(startRow-1);
+			HSSFCellStyle cellStyle = wb.createCellStyle();//标题加上上边框
+			cellStyle.setBorderTop((short)1);
+			// 设置标题
+			for(int i = 0; i < titles.length; i++){
+				HSSFCell cell = titleRow.createCell(i);
+				cell.setCellStyle(cellStyle);
+				setCellGBKValue(cell, titles[i]);
+			}
+			
+			k = 1;
+			for (Map<Object, Object> map : list) {
+				HSSFRow row = sheet.createRow(k+startRow-1);
+				for(int i = 0; i < fieldNames.length; i++){
+					if(fieldNames[i].equals("number")){
+						setCellGBKValue(row.createCell(i), k+"");
+					}else{
+						//去除显示null的问题
+						Object temp = map.get(fieldNames[i]);
+						
+						// 转换为默认时间格式
+						temp = dateTimeToString(temp);
+						
+						setCellGBKValue(row.createCell(i),temp==null ? "":(temp+""));
+					}
+				}
+				k++;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return wb;
+	}
+	
+	private static void setCellGBKValue(HSSFCell cell, String value) {
+		cell.setCellType(HSSFCell.CELL_TYPE_STRING);
+		cell.setCellValue(value);
+	}
+	private static void setCellGBKValue(XSSFCell cell, String value) {
+		cell.setCellType(XSSFCell.CELL_TYPE_STRING);
+		cell.setCellValue(value);
+	}
+	
+	/**
+	 * @describe 导出
+	 * @auto lanva_xu
+	 * @date 2015年4月1日
+	 * @param wb
+	 * @param fileName
+	 * @param response
+	 * @throws IOException
+	 */
+	public static void export(HSSFWorkbook wb, String fileName,HttpServletResponse response) throws IOException {
+		wb=new HSSFWorkbook();//用于禁止所有试图通过此接口导出excel的地方，如果要解禁，请删除此行代码　add by fengxing 2016-04-06
+		// 设置response的编码方式
+		response.setContentType("application/x-msdownload");
+
+		// 写明要下载的文件的大小
+		// response.setContentLength((int)fileName.length());
+
+		// 设置附加文件名
+		response.setHeader("Content-Disposition", "attachment;filename="
+				+ fileName);
+
+		// 解决中文乱码
+		response.setHeader("Content-Disposition","attachment;filename="+new String(fileName.getBytes("gbk"),"iso-8859-1"));
+		OutputStream output = response.getOutputStream();
+		wb.write(output);
+		
+		output.flush();
+		output.close();
+
+	}
+	
+	/**
+	 * @describe 将HSSFWorkbook 写到指定目录文件 
+	 *
+	 * @author henley_lin
+	 * @date 2016年7月4日2016年7月4日
+	 * @param HSSFWorkbook  
+	 * @param fileName
+	 * @return 
+	 */
+	public static void writeExcel(HSSFWorkbook wb, String fileName) throws IOException{
+		    File file=new File(fileName);
+		    File path=new File(file.getParent());
+		    if(!path.exists()){
+		    	path.mkdirs();
+		    }		    	
+		    
+			OutputStream out = new FileOutputStream(fileName);			
+
+			wb.write(out);			
+			out.flush();
+			out.close();
+			
+			
+	}
+	/**
+	 * @describe 将XSSFWorkbook 写到指定目录文件 
+	 *
+	 * @author hawii_lai
+	 * @date 2017年10月27日
+	 * @param XSSFWorkbook  
+	 * @param fileName
+	 * @return 
+	 */
+	public static void writeXExcel(XSSFWorkbook wb, String fileName) throws IOException{
+		    File file=new File(fileName);
+		    File path=new File(file.getParent());
+		    if(!path.exists()){
+		    	path.mkdirs();
+		    }		    	
+		    
+			OutputStream out = new FileOutputStream(fileName);			
+
+			wb.write(out);			
+			out.flush();
+			out.close();
+			
+			
+	}
+}

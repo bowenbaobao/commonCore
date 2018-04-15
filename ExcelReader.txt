@@ -1,0 +1,398 @@
+package com.sekorm.common.util.excel;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFDataFormat;
+import org.apache.poi.hssf.usermodel.HSSFDateUtil;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * 操作Excel表格的功能类
+ *
+ * @version 1.0
+ * @author：tancheng
+ */
+public class ExcelReader {
+    private final static Logger LOG = LoggerFactory.getLogger(ExcelReader.class);
+
+    private POIFSFileSystem fs;
+
+    private Workbook wb;
+
+    private Sheet sheet;
+
+    private Row row;
+
+    DecimalFormat df = new DecimalFormat("#0.000000");//转换成整型
+
+    /**
+     * 读取Excel表格表头的内容
+     *
+     * @return String 表头内容的数组
+     */
+    public String[] readExcelTitle(InputStream is) {
+        try {
+            fs = new POIFSFileSystem(is);
+            wb = new HSSFWorkbook(fs);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        sheet = wb.getSheetAt(0);
+        row = sheet.getRow(0);
+        // 标题总列数
+        int colNum = row.getPhysicalNumberOfCells();
+        String[] title = new String[colNum];
+        for (int i = 0; i < colNum; i++) {
+            title[i] = getStringCellValue(row.getCell((short) i));
+        }
+        return title;
+    }
+
+    /**
+     * 读取Excel数据内容,要求大于两行,第一列的数据不能为空,如果为空就停止读取
+     *
+     * @return Map 包含单元格数据内容的Map对象
+     */
+    public LinkedHashMap<Integer, LinkedHashMap<Integer, String>> readExcelContent(InputStream is) {
+        LinkedHashMap<Integer, LinkedHashMap<Integer, String>> rows = new LinkedHashMap<Integer, LinkedHashMap<Integer, String>>();//保证顺序
+        LinkedHashMap<Integer, String> columns = null;
+        try {
+            fs = new POIFSFileSystem(is);
+            wb = new HSSFWorkbook(fs);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        sheet = wb.getSheetAt(0);
+        // 得到总行数
+        int rowNum = sheet.getLastRowNum();
+        row = sheet.getRow(1);
+        if (row == null) return null;
+        int colNum = row.getPhysicalNumberOfCells();
+        // 正文内容应该从第二行开始,第一行为表头的标题
+        for (int i = 1; i <= rowNum; i++) {
+            row = sheet.getRow(i);
+            if (row == null) break;
+            int j = 0;
+            columns = new LinkedHashMap<Integer, String>();
+            while (j < colNum) {
+                columns.put(j, getStringCellValue(row.getCell((short) j)));
+                j++;
+            }
+            rows.put(i, columns);
+        }
+        return rows;
+    }
+
+    /**
+     * @param is
+     * @param sheetIndexs 指定的sheet ,为null时 将读取所有的 sheet.
+     * @param readrowFrom 每个sheet 从第几行开始读.null时将从0行读取.
+     * @return 不可能返回null
+     * @throws InvalidFormatException
+     * @throws IOException
+     * @describe 取到excel 格式文件,list的顺序就是行的顺序,跨Sheet的无法区分.
+     */
+    public static List<Map<Integer, String>> read(InputStream is,
+                                                  Integer[] sheetIndexs, Integer readrowFrom) throws InvalidFormatException, IOException {
+        List<Map<Integer, String>> list = new ArrayList<Map<Integer, String>>();
+        Workbook workbook = WorkbookFactory.create(is);
+        int sheetCount = workbook.getNumberOfSheets();
+        if (null == sheetIndexs) {// 读取所有的sheet.
+            for (int curIndex = 0; curIndex < sheetCount; curIndex++) {
+                Sheet sheet = workbook.getSheetAt(curIndex);
+                list.addAll(readSheet(sheet, null, null, readrowFrom));
+            }
+        } else {
+            for (Integer index : sheetIndexs) {
+                Sheet sheet = workbook.getSheetAt(index);
+                list.addAll(readSheet(sheet, null, null, readrowFrom));
+            }
+        }
+        return list;
+    }
+
+    /**
+     * 读取Excel数据内容,要求大于两行,第一列的数据不能为空,如果为空就停止读取
+     *
+     * @return Map 包含单元格数据内容的Map对象
+     */
+    public LinkedHashMap<Integer, LinkedHashMap<Integer, String>> readExcelContent(InputStream is, int start) {
+        LinkedHashMap<Integer, LinkedHashMap<Integer, String>> rows = new LinkedHashMap<Integer, LinkedHashMap<Integer, String>>();//保证顺序
+        LinkedHashMap<Integer, String> columns = null;
+        try {
+            fs = new POIFSFileSystem(is);
+            wb = new HSSFWorkbook(fs);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        sheet = wb.getSheetAt(0);
+        // 得到总行数
+        int rowNum = sheet.getLastRowNum();
+        row = sheet.getRow(0);
+        if (row == null) return null;
+        int colNum = row.getPhysicalNumberOfCells();
+        // 正文内容应该从第二行开始,第一行为表头的标题
+        for (int i = start; i <= rowNum; i++) {
+            row = sheet.getRow(i);
+            if (row == null) break;
+            int j = 0;
+            columns = new LinkedHashMap<Integer, String>();
+            while (j < colNum) {
+                columns.put(j, getStringCellValue(row.getCell((short) j)));
+                j++;
+            }
+            rows.put(i, columns);
+        }
+        return rows;
+    }
+
+    /**
+	 * 读取Excel数据内容,要求大于两行,第一列的数据不能为空,如果为空就停止读取
+	 * @param type(0: xls格式 1： xlsx格式)
+	 * @return Map 包含单元格数据内容的Map对象
+	 */
+	public LinkedHashMap<Integer, LinkedHashMap<Integer,String>> readExcelContent(InputStream is,int start, int type) {
+		LinkedHashMap<Integer, LinkedHashMap<Integer,String>>  rows= new LinkedHashMap<Integer, LinkedHashMap<Integer,String>>();//保证顺序
+		LinkedHashMap<Integer,String> columns=null;
+		try {
+			
+			if(type == 0){
+				POIFSFileSystem fs = new POIFSFileSystem(is);
+				wb = new HSSFWorkbook(fs);
+			}else if(type == 1){
+				wb = new XSSFWorkbook(is);
+			}
+				
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		sheet = wb.getSheetAt(0);
+		// 得到总行数
+		int rowNum = sheet.getLastRowNum();
+		row = sheet.getRow(0);
+		if(row==null)return null;
+		int colNum = row.getPhysicalNumberOfCells();
+		// 正文内容应该从第二行开始,第一行为表头的标题
+		for (int i = start; i <= rowNum; i++) {
+			row = sheet.getRow(i);
+			if(row==null)break;
+			int j = 0;
+			columns=new LinkedHashMap<Integer,String>();
+			while (j < colNum) {
+				columns.put(j,getStringCellValue(row.getCell((short)j)));
+				j++;
+			}
+			rows.put(i, columns);
+		}
+		return rows;
+	}
+    
+    /**
+     * 获取单元格数据内容为字符串类型的数据
+     *
+     * @param cell Excel单元格
+     * @return String 单元格数据内容
+     */
+    private String getStringCellValue(Cell cell) {
+        String strCell = "";
+        if (cell == null)
+            return "";
+        switch (cell.getCellType()) {
+            case HSSFCell.CELL_TYPE_STRING:
+                strCell = cell.getRichStringCellValue().toString();
+                break;
+            case HSSFCell.CELL_TYPE_NUMERIC:
+                strCell = getDate(cell);
+                break;
+            case HSSFCell.CELL_TYPE_BOOLEAN:
+                strCell = String.valueOf(cell.getBooleanCellValue());
+                break;
+            case HSSFCell.CELL_TYPE_BLANK:
+                strCell = "";
+                break;
+            default:
+                strCell = "";
+                break;
+        }
+        if (StringUtils.isBlank(strCell)) {
+            return "";
+        }
+        return strCell;
+    }
+
+    public String getDate(Cell cell) {
+        if (cell.getCellStyle().getDataFormat() == HSSFDataFormat.getBuiltinFormat("m/d/yy")) {
+            String sDate = cell.getNumericCellValue() + "";
+            if (null != sDate || !"".equals(sDate)) {
+                Date date = HSSFDateUtil.getJavaDate(cell.getNumericCellValue());
+                return new SimpleDateFormat("yyyy-MM-dd").format(date);
+            }
+            return "";
+        }
+        return getInt(cell);
+    }
+
+    public String getInt(Cell cell) {
+        String str_value = df.format(cell.getNumericCellValue());
+        //去掉小数点后面的0
+        int index = str_value.indexOf(".");
+        if (index != -1) {
+            str_value = str_value.replaceAll("0+?$", "");//去掉多余的0
+            str_value = str_value.replaceAll("[.]$", "");//如最后一位是.则去掉
+        }
+        return str_value;
+    }
+
+    /**
+     * 获取单元格数据内容为日期类型的数据
+     *
+     * @param cell Excel单元格
+     * @return String 单元格数据内容
+     */
+    private String getDateCellValue(Cell cell) {
+        String result = "";
+        try {
+            int cellType = cell.getCellType();
+            if (cellType == HSSFCell.CELL_TYPE_NUMERIC) {
+                Date date = cell.getDateCellValue();
+                result = (date.getYear() + 1900) + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+            } else if (cellType == HSSFCell.CELL_TYPE_STRING) {
+                String date = getStringCellValue(cell);
+                result = date.replaceAll("[年月]", "-").replace("日", "").trim();
+            } else if (cellType == HSSFCell.CELL_TYPE_BLANK) {
+                result = "";
+            }
+        } catch (Exception e) {
+            LOG.info("日期格式不正确!");
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    public static void main(String[] args) {
+        try {
+            // 对读取Excel表格标题测试
+            InputStream is = new FileInputStream("F:/workspace/test/src/test.xls");
+            ExcelReader excelReader = new ExcelReader();
+            String[] title = excelReader.readExcelTitle(is);
+            LOG.info("获得Excel表格的标题:");
+            for (String s : title) {
+                LOG.info(s + " ");
+            }
+
+            // 对读取Excel表格内容测试
+            InputStream is2 = new FileInputStream("F:/workspace/test/src/test.xls");
+            Map<Integer, LinkedHashMap<Integer, String>> map = excelReader.readExcelContent(is2);
+            LOG.info("获得Excel表格的内容:");
+            for (int i = 1; i <= map.size(); i++) {
+                LOG.info(map.get(i).toString());
+            }
+        } catch (FileNotFoundException e) {
+            LOG.info("未找到指定路径的文件!");
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 读取一个 sheet 的数据
+     *
+     * @param sheet
+     * @param maxRow
+     * @param colNum
+     * @return
+     * @describe
+     */
+    private static List<Map<Integer, String>> readSheet(Sheet sheet,
+                                                        Integer maxRow, Integer colNum, Integer readrowFrom) {
+        List<Map<Integer, String>> list = new ArrayList<Map<Integer, String>>();
+        if (null == sheet) {
+            return list;
+        }
+        if (null == maxRow) {
+            maxRow = sheet.getLastRowNum();
+        }
+        if (null == readrowFrom) {
+            readrowFrom = 0;
+        }
+        for (int row = readrowFrom; row <=maxRow; row++) {
+            list.add(readRow(sheet.getRow(row), colNum));
+        }
+
+        return list;
+    }
+
+    /**
+     * 读取一行的数据.
+     *
+     * @param row    读取的行
+     * @param colNum 可以指定读取几列
+     * @return
+     * @describe
+     */
+    private static Map<Integer, String> readRow(Row row, Integer colNum) {
+		if(null==row){
+			return new LinkedHashMap<Integer, String>(0);
+		}
+        if (null == colNum) {
+        	 colNum=Integer.valueOf(row.getLastCellNum());
+//            colNum = row.getPhysicalNumberOfCells();
+        }
+        Map<Integer, String> map = new LinkedHashMap<Integer, String>(colNum);
+        int curCol = 0;
+        while (curCol < colNum) {
+            map.put(curCol, getCellVal(row.getCell(curCol)));
+            ++curCol;
+
+        }
+        return map;
+
+    }
+
+    /**
+     * 读取一个cell的数据
+     * @param cell
+     * @return
+     * @describe
+     */
+    private static String getCellVal(Cell cell) {
+    	if (cell == null) {
+			return "";
+		}
+        switch (cell.getCellType()) {
+            case Cell.CELL_TYPE_BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case Cell.CELL_TYPE_NUMERIC:
+      		  if(DateUtil.isCellDateFormatted(cell)){
+    			  return  new SimpleDateFormat("yyyy/MM/dd").format(cell.getDateCellValue());
+    		  }
+                return String.valueOf(DF.format(cell.getNumericCellValue()));
+            default:
+                return cell.getStringCellValue();
+        }
+    }
+
+    private static final DecimalFormat DF = new DecimalFormat("0");
+}
