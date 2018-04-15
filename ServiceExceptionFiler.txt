@@ -1,0 +1,57 @@
+package com.sekorm.common.filter;
+
+import java.util.Arrays;
+
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.AfterThrowing;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+/**
+ * service层异常拦截器
+ * 
+ * @author benny_bao
+ * @date 2017年3月11日
+ * */
+
+@Component
+@Aspect
+public class ServiceExceptionFiler {
+
+	private final static Logger logger = LoggerFactory
+			.getLogger(ServiceExceptionFiler.class);
+
+	/**
+	 * sekorm service层切入点
+	 * 
+	 * @author benny_bao
+	 * @date 2017年3月11日
+	 * */
+	@Pointcut("execution(* com.sekorm..service..*(..))")
+	public void serviceAspect() {
+
+	}
+
+	/**
+	 * service层异常拦截方法
+	 * 
+	 * @param joinPoint
+	 * @param e
+	 * 
+	 * @author benny_bao
+	 * @date 2017年3月11日
+	 * */
+
+	@AfterThrowing(pointcut = "serviceAspect()" , throwing = "e")
+	public void afterThrowing(JoinPoint joinPoint, Throwable e){
+		//抛出异常的类、方法、入参输出日志		
+		logger.error(joinPoint.getSignature()+", params:"+ Arrays.asList(joinPoint.getArgs()).toString());
+		
+		//异常堆栈日志输出日志
+		logger.error(e.getMessage(), e);
+
+	}
+}

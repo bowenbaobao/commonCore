@@ -1,0 +1,82 @@
+package com.sekorm.common.filter;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.sekorm.common.beans.DataReturn;
+import com.sekorm.common.exception.BusinessException;
+import com.sekorm.common.exception.RedirectException;
+import com.sekorm.common.util.JacksonUtils;
+import com.sekorm.common.util.PropertyReader;
+
+/**
+ * @desc: controller层异常处理器
+ * @User: ambitor_luo
+ * @Date: 2015/6/16
+ */
+@ControllerAdvice
+public class ControllerExceptionFilter {
+
+	public ControllerExceptionFilter() {
+		this.exceptionMsgSetting = PropertyReader.getResourceBundle("codemsg");
+	}
+
+	@ExceptionHandler(RuntimeException.class)
+	public ModelAndView runtimeExceptionHandler(
+			RuntimeException runtimeException, HttpServletRequest request,
+			HttpServletResponse response) {
+		StringBuilder sb = new StringBuilder("Invoke url:"
+				+ request.getRequestURL());
+		sb.append("  Param:" + JacksonUtils.toJson(request.getParameterMap()));
+		logger.error(sb.toString(), runtimeException);
+		String msg = "操作失败，请重试或联系管理员";
+		if (runtimeException instanceof BusinessException
+				|| runtimeException instanceof RedirectException) {
+			if (StringUtils.isNotBlank(runtimeException.getMessage())) {// 优先取用户填的Message
+				msg = runtimeException.getMessage();
+			} else {// 如果用户只填了code 则根据code去配置文件里取错误信息，如果配置文件没有该code，默认显示msg
+				int code = -1;
+				if (runtimeException instanceof BusinessException)
+					code = ((BusinessException) runtimeException).getCode();
+				else if (runtimeException instanceof RedirectException)
+					code = ((RedirectException) runtimeException).getCode();
+				String propertiesMsg = exceptionMsgSetting.getString(code);
+				msg = propertiesMsg == null ? msg : propertiesMsg;
+			}
+		}
+		try {
+			// 如果需要跳转
+			if (runtimeException instanceof RedirectException) {
+				RedirectException redirectException = (RedirectException) runtimeException;
+				String url = redirectException.getUrl();
+				Map<String, String> json = new HashMap<String, String>();
+				if (!"操作失败，请重试或联系管理员".equals(msg))
+					json.put("result", msg);
+				return new ModelAndView(url, json);
+			} else {// JSON格式返回
+				response.setContentType("application/json;charset=UTF-8");
+				response.getWriter().write(
+						JacksonUtils.toJson(new DataReturn(-1, msg)));
+				return new ModelAndView();
+			}
+		} catch (IOException e) {
+			logger.error("全局异常处理返回IO报错:", e);
+		}
+		return new ModelAndView();
+	}
+
+	private PropertyReader exceptionMsgSetting;
+	private static Logger logger = LoggerFactory
+			.getLogger(ControllerExceptionFilter.class);
+}
