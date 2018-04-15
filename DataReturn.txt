@@ -1,0 +1,104 @@
+package com.sekorm.common.beans;
+
+import java.io.Serializable;
+import java.util.HashMap;
+
+import com.sekorm.common.util.PropertyReader;
+
+/**
+ * 返回的结果<br>
+ * 是所有返回的数据类型
+ */
+public class DataReturn implements Serializable {
+
+    private static PropertyReader exceptionMsgSetting = PropertyReader.getResourceBundle("codemsg");
+
+    private static final long serialVersionUID = 1L;
+    // 返回状态码
+    private int code;
+    // 返回信息 不需要设置，在配置文件中配置
+    private String msg;
+    // 返回json数据
+    private Object data;
+
+    public DataReturn() {
+        data = new HashMap<Object, Object>();
+    }
+
+    public DataReturn(int code) {
+        setCode(code);
+    }
+
+    public DataReturn(int code, String msg) {
+        this.code = code;
+        this.msg = msg;
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(int code) {
+        this.code = code;
+        this.msg = exceptionMsgSetting.getString(code);
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public Object getData() {
+        return data;
+    }
+
+    public void setData(Object data) {
+        this.data = data;
+    }
+
+    /**
+     * 失败的请求
+     *
+     * @param code 设置code
+     * @return
+     */
+    public static DataReturn newFailure(int code) {
+        return new DataReturn(code);
+    }
+    
+    /**
+     * @des 失败请求
+     * @author lanva_xu
+     * @date 2017年11月27日
+     * @param code
+     * @param msg 错误信息
+     * @return
+     */
+    public static DataReturn newFailure(int code, String msg) {
+        return new DataReturn(code, msg);
+    }
+
+    /**
+     * 成功的请求
+     * @param data 返回的结果，code自动设置成0
+     * @return
+     */
+    @Deprecated
+    public static DataReturn newSuccessful(Object... data) {
+        DataReturn dataReturn = new DataReturn();
+        dataReturn.setCode(0);
+        dataReturn.setData(data);
+        return dataReturn;
+    }
+
+    /**
+     * 成功的请求
+     * @param data 返回的结果，code自动设置成0
+     * @return
+     */
+    public static DataReturn newSuccessfull(Object data) {
+        DataReturn dataReturn = new DataReturn();
+        dataReturn.setCode(0);
+        dataReturn.setData(data);
+        return dataReturn;
+    }
+}
