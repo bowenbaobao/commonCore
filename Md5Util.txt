@@ -1,0 +1,85 @@
+package com.sekorm.common.util.crypto;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+/**
+ * Md5加密工具类
+ */
+public class Md5Util {
+	/**
+	 * 将字符串进行MD5加密
+	 * 
+	 * @param str
+	 *            待加密字符串
+	 * @return String　加密后字符串
+	 * @throws NoSuchAlgorithmException
+	 */
+	public static String toMd5(String str) {
+		if (str == null || str.length() == 0) {
+			throw new IllegalArgumentException(
+					"String to encript cannot be null or zero length");
+		}
+
+		StringBuffer hexString = new StringBuffer();
+
+		try {
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			md.update(str.getBytes());
+			byte[] hash = md.digest();
+
+			for (int i = 0; i < hash.length; i++) {
+				if ((0xff & hash[i]) < 0x10) {
+					hexString.append("0"
+							+ Integer.toHexString((0xFF & hash[i])));
+				} else {
+					hexString.append(Integer.toHexString(0xFF & hash[i]));
+				}
+			}
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		return hexString.toString();
+	}
+	
+	public static String toMd5(InputStream is) {
+		if (is == null) {
+			throw new IllegalArgumentException(
+					"InputStream to encript cannot be null ");
+		}
+
+		StringBuffer hexString = new StringBuffer();
+
+		try {
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			byte[] dataBytes = new byte[1024];  
+	          
+	        int nread = 0;   
+	        while ((nread = is.read(dataBytes)) != -1) {  
+	            md.update(dataBytes, 0, nread);  
+	        };  
+
+			byte[] hash = md.digest();
+
+			for (int i = 0; i < hash.length; i++) {
+				if ((0xff & hash[i]) < 0x10) {
+					hexString.append("0"
+							+ Integer.toHexString((0xFF & hash[i])));
+				} else {
+					hexString.append(Integer.toHexString(0xFF & hash[i]));
+				}
+			}
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (IOException e) {			
+			e.printStackTrace();
+		}
+		return hexString.toString();
+	}
+
+	public static void main(String[] args) {
+		System.out.println(toMd5("123456"));
+	}
+}
