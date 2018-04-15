@@ -1,0 +1,198 @@
+package com.sekorm.common.util;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.util.Map;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+public class CookieTools {
+	/**
+	 * <b>功能描述：</b>读取cookie信息。<br>
+	 * <b>修订记录：</b><br>
+	 * <li>20120508&nbsp;&nbsp;|&nbsp;&nbsp;商良磊&nbsp;&nbsp;|&nbsp;&nbsp;创建方法</li>
+	 * <br>
+	 * <br>
+	 * 
+	 * @param key
+	 *            String cookie的KEY
+	 * @param remove
+	 *            boolean 是否移除此cookie
+	 * @param request
+	 *            HttpServletRequest request对象
+	 * @param response
+	 *            HttpServletResponse response对象
+	 * @return String cookie的VALUE
+	 * @throws UnsupportedEncodingException
+	 */
+	public static String getCookie(String key, boolean remove,
+			HttpServletRequest request, HttpServletResponse response)
+			throws UnsupportedEncodingException {
+		String value = null;
+		if (null != request.getCookies()) {
+			for (Cookie cookie : request.getCookies()) {
+				if (cookie.getName().equals(key)) {
+					value = URLDecoder.decode(cookie.getValue(), "UTF-8");
+					if (remove) {
+						cookie.setMaxAge(0);
+						response.addCookie(cookie);
+					}
+				}
+			}
+		}
+		return value;
+	}
+
+	/**
+	 *  <b>功能描述：</b>删除所有的cookie。<br>
+	 * @author polite_lu
+	 * @date 2016/7/26 10:26
+	 * @param request  HttpServletRequest
+	 * @param response HttpServletResponse
+	 * @return
+	 */
+	public static void removeAllCookies(HttpServletRequest request, HttpServletResponse response){
+		Cookie[] cookies = request.getCookies();
+		if (null != cookies){
+			for (Cookie cookie : cookies) {
+				cookie.setValue(null);
+				cookie.setMaxAge(0);
+				response.addCookie(cookie);
+			}
+		}
+
+	}
+
+	/**
+	 * <b>功能描述：</b>读取cookie信息，默认不删除此cookie。<br>
+	 * <b>修订记录：</b><br>
+	 * <li>20120508&nbsp;&nbsp;|&nbsp;&nbsp;商良磊&nbsp;&nbsp;|&nbsp;&nbsp;创建方法</li>
+	 * <br>
+	 * <br>
+	 * 
+	 * @param key
+	 *            String cookie的KEY
+	 * @param request
+	 *            HttpServletRequest request对象
+	 * @return String cookie的VALUE
+	 * @throws UnsupportedEncodingException
+	 */
+	public static String getCookie(String key, HttpServletRequest request)
+			throws UnsupportedEncodingException {
+		return CookieTools.getCookie(key, false, request, null);
+	}
+
+	/**
+	 * <b>功能描述：</b>设置cookie，options采用KEY<->VALUE的形式定义cookie参数。<br>
+	 * <b>修订记录：</b><br>
+	 * <li>20120508&nbsp;&nbsp;|&nbsp;&nbsp;商良磊&nbsp;&nbsp;|&nbsp;&nbsp;创建方法</li>
+	 * <br>
+	 * <br>
+	 * 
+	 * @param key
+	 *            String cookie的KEY
+	 * @param value
+	 *            String cookie的VALUE
+	 * @param options
+	 *            Map<String, String> cookie的参数
+	 * @param response
+	 *            HttpServletResponse 设置cookie用的response对象
+	 * @throws UnsupportedEncodingException
+	 */
+	public static void setCookie(String key, String value,
+			Map<String, String> options, HttpServletResponse response)
+			throws UnsupportedEncodingException {
+		// cookie保存中文会出现乱码，所以对String进行URL编码
+		value = URLEncoder.encode(value, "UTF-8");
+		Cookie cookie = new Cookie(key, value);
+		if (null != options) {
+			// cookie描述
+			if (null != options.get("comment")) {
+				cookie.setComment(options.get("comment"));
+			}
+			// cookie域
+			if (null != options.get("domain")) {
+				cookie.setDomain(options.get("domain"));
+			}
+			// cookie声明周期
+			if (null != options.get("maxAge")) {
+				cookie.setMaxAge(Integer.parseInt(options.get("maxAge")));
+			}
+			// cookie路径
+			if (null != options.get("path")) {
+				cookie.setPath(options.get("path"));
+			}
+			// cookie是否使用安全协议
+			if (null != options.get("secure")) {
+				cookie.setSecure(Boolean.parseBoolean(options.get("secure")));
+			}
+			// cookie协议版本
+			if (null != options.get("version")) {
+				cookie.setVersion(Integer.parseInt(options.get("version")));
+			}
+		}
+		response.addCookie(cookie);
+	}
+
+	/**
+	 * <b>功能描述：</b>设置cookie，options为null，既不对cookie进行参数设置。<br>
+	 * <b>修订记录：</b><br>
+	 * <li>20120508&nbsp;&nbsp;|&nbsp;&nbsp;商良磊&nbsp;&nbsp;|&nbsp;&nbsp;创建方法</li>
+	 * <br>
+	 * <br>
+	 * 
+	 * @param key
+	 *            String cookie的KEY
+	 * @param value
+	 *            String cookie的VALUE
+	 * @param response
+	 *            HttpServletResponse 设置cookie用的response对象
+	 * @throws UnsupportedEncodingException
+	 */
+	public static void setCookie(String key, String value,
+			HttpServletResponse response) throws UnsupportedEncodingException {
+		CookieTools.setCookie(key, value, null, response);
+	}
+
+	/**
+	 * <b>功能描述：</b>设置cookie，options采用KEY<->VALUE的形式定义cookie参数，
+	 * cookie的KEY采用与VALUE同名的方式。<br>
+	 * <b>修订记录：</b><br>
+	 * <li>20120508&nbsp;&nbsp;|&nbsp;&nbsp;商良磊&nbsp;&nbsp;|&nbsp;&nbsp;创建方法</li>
+	 * <br>
+	 * <br>
+	 * 
+	 * @param value
+	 *            String cookie的VALUE
+	 * @param options
+	 *            Map<String, String> cookie的参数
+	 * @param response
+	 *            HttpServletResponse 设置cookie用的response对象
+	 * @throws UnsupportedEncodingException
+	 */
+	public static void setCookie(String value, Map<String, String> options,
+			HttpServletResponse response) throws UnsupportedEncodingException {
+		CookieTools.setCookie(value, value, options, response);
+	}
+
+	/**
+	 * <b>功能描述：</b>设置cookie，options为null，既不对cookie进行参数设置。<br>
+	 * <b>修订记录：</b><br>
+	 * <li>20120508&nbsp;&nbsp;|&nbsp;&nbsp;商良磊&nbsp;&nbsp;|&nbsp;&nbsp;创建方法</li>
+	 * <br>
+	 * <br>
+	 * 
+	 * @param value
+	 *            String cookie的VALUE
+	 * @param response
+	 *            HttpServletResponse 设置cookie用的response对象
+	 * @throws UnsupportedEncodingException
+	 */
+	public static void setCookie(String value, HttpServletResponse response)
+			throws UnsupportedEncodingException {
+		CookieTools.setCookie(value, value, null, response);
+	}
+}

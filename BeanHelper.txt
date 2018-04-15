@@ -1,0 +1,169 @@
+package com.sekorm.common.util;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
+
+import com.sekorm.common.exception.BusinessException;
+
+/**
+ * BeanHelper 继承 spring 的 BeanUtils
+ * add 去掉bean中所有属性为字符串的前后空格 的方法
+ * @author polite_lu
+ * @date 2016年9月2号
+ */
+public class BeanHelper extends BeanUtils{
+	
+	private static final Logger logger = LoggerFactory.getLogger(BeanHelper.class);
+	
+    /**
+     * 去掉bean中所有属性为字符串的前后空格
+     * @param bean
+     * @throws Exception
+     */
+    public static void beanAttributeValueTrim(Object bean) throws Exception {
+        if(bean!=null){
+            //获取所有的字段包括public,private,protected,private
+            Field[] fields = bean.getClass().getDeclaredFields();
+            for (int i = 0; i < fields.length; i++) {
+                Field f = fields[i];
+                if (f.getType().getName().equals("java.lang.String")) {
+                    String key = f.getName();//获取字段名
+                    Object value = getFieldValue(bean, key);
+                    
+                    if (value == null)
+                        continue;
+                    //利用发射调用bean.set方法将value设置到字段
+                    setFieldValue(bean, key, value.toString().trim());
+                    /** 暴力反射设置值 */
+                   // f.setAccessible(true);
+                   // f.set(bean,value.toString().trim());
+                }
+            }
+        }
+    }
+
+    /**
+     * 利用反射通过get方法 获取bean中字段fieldName的值
+     * @param bean
+     * @param fieldName
+     * @return
+     * @throws Exception
+     */
+    private static Object getFieldValue(Object bean, String fieldName)
+            throws Exception {
+        StringBuffer result = new StringBuffer();
+        // 拼接 get 方法名
+        String methodName = result.append("get")
+                .append(fieldName.substring(0, 1).toUpperCase())//字段第个字母大写
+                .append(fieldName.substring(1)).toString();
+
+        Object rObject = null;
+        Method method = null;
+
+        @SuppressWarnings("rawtypes")
+        Class[] classArr = new Class[0];
+        method = bean.getClass().getMethod(methodName, classArr);
+        rObject = method.invoke(bean, new Object[0]);
+
+        return rObject;
+    }
+
+    /**
+     * 利用发射调用bean.set方法将value设置到字段
+     * @param bean
+     * @param fieldName
+     * @param value
+     * @throws Exception
+     */
+    private static void setFieldValue(Object bean, String fieldName, Object value)
+            throws Exception {
+        StringBuffer result = new StringBuffer();
+        String methodName = result.append("set")
+                .append(fieldName.substring(0, 1).toUpperCase())
+                .append(fieldName.substring(1)).toString();
+
+        /**
+         * 利用发射调用bean.set方法将value设置到字段
+         */
+        Class[] classArr = new Class[1];
+        classArr[0]="java.lang.String".getClass();
+        Method method=bean.getClass().getMethod(methodName,classArr);
+        method.invoke(bean,value);
+    }
+
+    /**
+     * 将入参集合转换为clazz类型的出参集合
+     * @param inputList 入参集合
+     * @param clazz 目标类型
+     * @return clazz类型的出参集合
+     */
+    public static <I, O> List<O> copyPropertiesForList(List<I> inputList, Class<O> clazz) {
+		if (inputList == null) {
+			return null;
+		}
+		
+		List<O> outputList = new ArrayList<O>();
+		if (inputList.size() == 0) {
+			return outputList;
+		}
+		
+		O o = null;
+		try {
+			for (I i : inputList) {
+				o = clazz.newInstance();
+				BeanUtils.copyProperties(i, o);
+				outputList.add(o);
+			}
+		} catch (InstantiationException | IllegalAccessException e) {
+			logger.info(e.getMessage(), e);
+		}
+		
+		return outputList;
+	}
+    
+    /**
+     * 自动实例化的Bean，并拷贝属性
+     * @param source 源对象
+     * @param clazz 目标类型
+     * @return 目标对象
+     */
+    public static <T> T copyPropertiesForNewBean(Object source, Class<T> clazz) {
+    	if (source == null || clazz == null) {
+    		return null;
+    	}
+    	
+    	T t = null;
+    	try {
+			t = clazz.newInstance();
+		} catch (InstantiationException | IllegalAccessException e) {
+			logger.error("拷贝Bean实实例化对象失败", e);
+			throw new BusinessException("拷贝Bean实实例化对象失败");
+		}
+    	
+    	BeanUtils.copyProperties(source, t);
+    	return t;
+    }
+    
+    /**
+     * Map对象属性复制(使用apache的beanutils)     
+     * 
+     *@param dest 目标对象
+     *@param map  map集合
+     * */
+    public static void copyPropertys(Object dest,Map<String,String> map) {    	
+	    try {
+	    	org.apache.commons.beanutils.ConvertUtils.register(new org.apache.commons.beanutils.converters.IntegerConverter(null), Integer.class);
+	    	org.apache.commons.beanutils.BeanUtils.copyProperties(dest, map);
+		} catch (Exception e) {
+			logger.info(e.getMessage(), e);
+		} 
+    }
+    
+}

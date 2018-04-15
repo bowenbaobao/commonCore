@@ -1,0 +1,472 @@
+package com.sekorm.common.util;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
+/**
+ * 日期时间处理工具类
+ * 
+ * @author zhangqing
+ * @since 1.0
+ */
+public class DateTimeUtils {
+
+	/**
+	 * 将java.util.Date类型日期转化为“yyyy-MM-dd”格式的String类型日期
+	 * 
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return String类型日期
+	 */
+	public static String getDate(java.util.Date date) {
+		return formatDate(date, "yyyy-MM-dd");
+	}
+
+	/**
+	 * 返回字符型时间("HH:mm:ss")
+	 * 
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return 返回字符型时间
+	 */
+	public static String getTime(java.util.Date date) {
+		return formatDate(date, "HH:mm:ss");
+	}
+
+	/**
+	 * 返回字符型日期时间("yyyy-MM-dd HH:mm:ss")
+	 * 
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return 返回字符型日期时间
+	 */
+	public static String getDateTime(java.util.Date date) {
+		return formatDate(date, "yyyy-MM-dd HH:mm:ss");
+	}
+
+	/**
+	 * 将java.util.Date类型日期转化为指定格式的String类型日期
+	 * 
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @param format
+	 *            指定的日期格式
+	 * @return String类型日期
+	 */
+	public static String formatDate(java.util.Date date, String format) {
+		String result = "";
+		if (date != null) {
+			try {
+				SimpleDateFormat sdf = new SimpleDateFormat(format);
+				result = sdf.format(date);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * 将String类型日期转化为指定格式的java.util.Date类型日期
+	 * 
+	 * @param dateStr
+	 *            String类型日期
+	 * @param format
+	 *            格式
+	 * @return java.util.Date类型日期
+	 */
+	public static java.util.Date parseDate(String dateStr, String format) {
+		java.util.Date date = null;
+		if (dateStr.length() < format.length()) {
+			format = format.substring(0, dateStr.length());
+		}
+		try {
+			java.text.DateFormat df = new SimpleDateFormat(format);
+			date = (java.util.Date) df.parse(dateStr);
+		} catch (Exception e) {
+			System.out.println("日期解析错误:" + dateStr);
+			e.printStackTrace();
+		}
+		return date;
+	}
+
+	/**
+	 * 将String类型日期转化为“yyyy-MM-dd”格式的java.util.Date类型日期
+	 * 
+	 * @param dateStr
+	 *            String类型日期
+	 * @return java.util.Date类型日期
+	 */
+	public static java.util.Date parseDate(String dateStr) {
+		return parseDate(dateStr, "yyyy-MM-dd");
+	}
+
+	/**
+	 * 将java.sql.Date类型日期转化为java.util.Date类型日期
+	 * 
+	 * @param date
+	 *            java.sql.Date类型日期
+	 * @return java.util.Date类型日期
+	 */
+	public static java.util.Date parseDate(java.sql.Date date) {
+		return date;
+	}
+
+	/**
+	 * 将java.util.Date类型日期转化为java.sql.Date类型日期
+	 * 
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return java.sql.Date类型日期
+	 */
+	public static java.sql.Date parseSqlDate(java.util.Date date) {
+		if (date != null)
+			return new java.sql.Date(date.getTime());
+		else
+			return null;
+	}
+
+	/**
+	 * 将String类型日期转化为指定格式的java.sql.Date类型日期
+	 * 
+	 * @param dateStr
+	 *            String类型日期
+	 * @param format
+	 *            指定格式
+	 * @return java.sql.Date类型日期
+	 */
+	public static java.sql.Date parseSqlDate(String dateStr, String format) {
+		java.util.Date date = parseDate(dateStr, format);
+		return parseSqlDate(date);
+	}
+
+	/**
+	 * 将String类型日期转化为"yyyy-MM-dd"格式的java.sql.Date类型日期
+	 * 
+	 * @param dateStr
+	 *            String类型日期
+	 * @return java.sql.Date类型日期
+	 */
+	public static java.sql.Date parseSqlDate(String dateStr) {
+		return parseSqlDate(dateStr, "yyyy-MM-dd");
+	}
+
+	/**
+	 * 将String类型日期转化为指定格式的java.sql.Timestamp类型日期
+	 * 
+	 * @param dateStr
+	 *            String类型日期
+	 * @param format
+	 *            指定格式
+	 * @return java.sql.Timestamp类型日期
+	 */
+	public static java.sql.Timestamp parseTimestamp(String dateStr,
+			String format) {
+		java.util.Date date = parseDate(dateStr, format);
+		if (date != null) {
+			long t = date.getTime();
+			return new java.sql.Timestamp(t);
+		} else
+			return null;
+	}
+
+	/**
+	 * 将String类型日期转化为"yyyy-MM-dd HH:mm:ss"格式的java.sql.Timestamp类型日期
+	 * 
+	 * @param dateStr
+	 *            String类型日期
+	 * @return java.sql.Timestamp类型日期
+	 */
+	public static java.sql.Timestamp parseTimestamp(String dateStr) {
+		return parseTimestamp(dateStr, "yyyy-MM-dd HH:mm:ss");
+	}
+
+	/**
+	 * 返回年份
+	 * 
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return 返回年份
+	 */
+	public static int getYear(java.util.Date date) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		return c.get(Calendar.YEAR);
+	}
+
+	/**
+	 * 返回月份
+	 *
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return 返回月份
+	 */
+	public static int getMonth(java.util.Date date) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		return c.get(Calendar.MONTH) + 1;
+	}
+
+	/**
+	 * 返回日
+	 *
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return 返回日份
+	 */
+	public static int getDay(java.util.Date date) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		return c.get(Calendar.DAY_OF_MONTH);
+	}
+
+	/**
+	 * 返回小时
+	 *
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return 返回小时
+	 */
+	public static int getHour(java.util.Date date) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		return c.get(Calendar.HOUR_OF_DAY);
+	}
+
+	/**
+	 * 返回分钟
+	 *
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return 返回分钟
+	 */
+	public static int getMinute(java.util.Date date) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		return c.get(Calendar.MINUTE);
+	}
+
+	/**
+	 * 返回秒钟
+	 *
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return 返回秒钟
+	 */
+	public static int getSecond(java.util.Date date) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		return c.get(Calendar.SECOND);
+	}
+
+	/**
+	 * 返回毫秒
+	 *
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @return 返回毫秒
+	 */
+	public static long getMillis(java.util.Date date) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		return c.getTimeInMillis();
+	}
+
+	/**
+	 * 日期相加
+	 *
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @param day
+	 *            天数
+	 * @return 返回相加后的日期
+	 */
+	public static java.util.Date addDate(java.util.Date date, int day) {
+		Calendar c = Calendar.getInstance();
+		c.setTimeInMillis(getMillis(date) + ((long) day) * 24 * 3600 * 1000);
+		return c.getTime();
+	}
+	
+	/**
+	 * 日期相加(工作日)，遇周六、周日顺延
+	 *
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @param day
+	 *            天数
+	 * @return 返回相加后的日期
+	 */
+	public static java.util.Date addWorkDate(java.util.Date date, int day) {
+		int pos = 1;
+		for (int i = 0; i < day; i++) {
+			pos = CalendarUtils.getDayOfWeek(date);
+			if(pos == 1 || pos == 7) {
+				if(i == 0) {
+					//若注册时间在周末，则将时间初始化至当天的开始时间
+					Calendar cal = Calendar.getInstance();
+					cal.setTime(date);
+			        cal.set(Calendar.HOUR_OF_DAY, 0);
+			        cal.set(Calendar.MINUTE, 0);
+			        cal.set(Calendar.SECOND, 0);
+			        cal.set(Calendar.MILLISECOND, 0);
+			        date = cal.getTime();
+				}
+				i--;//周末，跳过当日
+			}
+			date = DateTimeUtils.addDate(date, 1);//添加一天
+		}
+		return date;
+	}
+
+	/**
+	 * 日期相减
+	 *
+	 * @param date
+	 *            java.util.Date类型日期
+	 * @param date1
+	 *            日期
+	 * @return 返回相减后的日期
+	 */
+	public static int diffDate(java.util.Date date, java.util.Date date1) {
+		return (int) ((getMillis(date) - getMillis(date1)) / (24 * 3600 * 1000));
+	}
+
+	/**
+	 * 日期字符串（yyyy-MM-dd HH:mm格式）- 当前时间 的分钟数
+	 *
+	 * @param str
+	 *            日期字符串（yyyy-MM-dd HH:mm格式）
+	 *
+	 * @return 返回相减后的分钟数
+	 */
+	public static int diffCurrentDate(String str) {
+		java.util.Date dt = parseDate(str, "yyyy-MM-dd HH:mm");
+		return (int) ((getMillis(dt) - getMillis(new java.util.Date())) / (60 * 1000));
+	}
+
+	/**
+	 * 判断一个字符串是否是合法的yyyy-MM-dd格式
+	 *
+	 * @param strDate
+	 * @return true合法 false不合法
+	 */
+	public static boolean isShortDate(String strDate) {
+		String reg = "^(([0-9]{3}[1-9]|[0-9]{2}[1-9][0-9]{1}|[0-9]{1}[1-9][0-9]{2}|[1-9][0-9]{3})-(((0[13578]|1[02])-(0[1-9]|[12][0-9]|3[01]))|((0[469]|11)-(0[1-9]|[12][0-9]|30))|(02-(0[1-9]|[1][0-9]|2[0-8]))))|((([0-9]{2})(0[48]|[2468][048]|[13579][26])|((0[48]|[2468][048]|[3579][26])00))-02-29)";
+		return strDate.matches(reg);
+	}
+
+	/**
+	 * 根据长日期（yyyy-MM-dd HH:mm:ss格式）获取短日期（yyyy-MM-dd格式）
+	 *
+	 * @param date
+	 *            长日期（yyyy-MM-dd HH:mm:ss格式）
+	 * @return 短日期（yyyy-MM-dd格式）
+	 */
+	public static java.util.Date getShortDate(java.util.Date date) {
+		return parseDate(getDate(date), "yyyy-MM-dd");
+	}
+
+	/**
+	 * 日期字符串（yyyy-MM-dd HH:mm格式）+ X分钟 后的日期字符串
+	 *
+	 * @param str
+	 *            日期字符串（yyyy-MM-dd HH:mm格式）
+	 * @param minute
+	 *            分钟
+	 *
+	 * @return 日期字符串（yyyy-MM-dd HH:mm格式）
+	 */
+	public static String getDateAddMinute(String str, int minute) {
+		java.util.Date dt = parseDate(str, "yyyy-MM-dd HH:mm");
+		Calendar c = Calendar.getInstance();
+		c.setTimeInMillis(getMillis(dt) + minute * 60 * 1000);
+		return formatDate(c.getTime(), "yyyy-MM-dd HH:mm");
+	}
+
+	/**
+	 * 判断当前时间是否在指定的时间范围内
+	 * 
+	 * @param startTime
+	 *            起始时间 （ HH:mm格式）
+	 * @param endTime
+	 *            结束时间（ HH:mm格式）
+	 * @return true 是 false 否
+	 */
+	public static boolean compareDateRange(String startTime, String endTime)
+			throws Exception {
+		// 当前时间
+		java.util.Date currDate = new java.util.Date();
+		String currDateStr = DateTimeUtils.getDate(currDate);
+
+		// 开始时间
+		java.util.Date sDate = parseDate(currDateStr + " " + startTime,
+				"yyyy-MM-dd HH:mm");
+		Calendar scal = Calendar.getInstance();
+		scal.setTime(sDate);
+		// 0秒
+		scal.set(Calendar.SECOND, 0);
+		sDate = scal.getTime();
+
+		// 结束时间
+		java.util.Date eDate = parseDate(currDateStr + " " + endTime,
+				"yyyy-MM-dd HH:mm");
+		Calendar ecal = Calendar.getInstance();
+		ecal.setTime(eDate);
+		// 59秒
+		ecal.set(Calendar.SECOND, 59);
+		eDate = ecal.getTime();
+
+		// 意为currDate >=sDate and currDate<=eDate
+		if (currDate.compareTo(sDate) >= 0 && currDate.compareTo(eDate) <= 0) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * 时间 根据类型 加减
+	 * @param date
+	 * @param addType
+	 * @param ammout
+	 * @return
+	 * @author qixueqing
+	 * @date2015年7月1日
+	 */
+	public static Date addDate(Date date,int addType , int ammout){
+		if(date == null){
+			return null;
+		}
+		Calendar c = Calendar.getInstance();
+		c.setTime(date);
+		c.add(addType, ammout);
+		return c.getTime();
+	}
+	
+	/**
+	 * 时间比较
+	 * @param d1 时间1
+	 * @param d2 时间2
+	 * @return 
+	 * @author lux_zhang
+	 * @date 2016年5月7日
+	 */
+	public static int compareDate(Date d1, Date d2) {
+		if(d1.getTime()>d2.getTime()) {
+			return 1;
+		} else if(d1.getTime()<d2.getTime()) {
+			return -1;
+		} else {
+			return 0;
+		}
+	}
+
+	public static void main(String[] arg) throws Exception {
+//		System.out.println("=======" + compareDateRange("17:02", "19:19"));
+		Date date2 = parseDate("2017-09-23 17:12:30", "yyyy-MM-dd HH:mm:ss");
+		System.out.println(getDateTime(date2));
+		Date date = addWorkDate(date2, 3);
+		System.out.println(getDateTime(date));
+	}
+}

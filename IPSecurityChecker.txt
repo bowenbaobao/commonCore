@@ -1,0 +1,165 @@
+package com.sekorm.common.util;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang.StringUtils;
+import org.junit.Assert;
+import org.junit.Test;
+
+/**
+ * IP字段（系统业务约定为IP或机器码）的规则校验
+ */
+public class IPSecurityChecker {
+	
+	public static Pattern ATTACK_KW_PATTERN = null;
+	
+	static {
+		/* 攻击性关键字 */
+		String[] offensiveKeywords = {
+				"drid",
+				"select",
+				"union",
+				"update",
+				"concat",
+				"and",
+				"or",
+				">",
+				"<",
+				"http",
+				"script",
+				"txt",
+				"win",
+				"etc",
+				"passwd",
+				"md5",
+				"die",
+				"\n",
+				"\r"
+		};
+		
+		/* 正则表达式 */
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < offensiveKeywords.length; i++) {
+			sb.append(offensiveKeywords[i]);
+			if (i < offensiveKeywords.length - 1) {
+				sb.append("|");
+			}
+		}
+		
+		String regex = "(" + sb.toString() + ")";
+		
+		ATTACK_KW_PATTERN = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+	}
+	
+	/**
+	 * 是否符合IP规则（包含关键字则不符合规则）
+	 * @param kw 原字符串
+	 * @return 是否符合IP规则
+	 */
+	public static boolean matches(String kw) {
+		if (StringUtils.isBlank(kw)) {
+			return true;
+		}
+		
+		Matcher matcher = ATTACK_KW_PATTERN.matcher(kw);
+		return !matcher.find();
+	}
+	
+	/**
+	 * SQL
+	 */
+	@Test
+	public void isTrue1() {
+		String[] kws = {
+				"db1c5102-757e-3718-a459-303e202a8b8e) UNION ALL SELECT CONCAT(0x444748656a70,0x764a62526741)#",
+				"-1145') UNION ALL SELECT CONCAT(0x444748656a70,0x764a62526741),CONCAT(0x444748656a70,0x764a62526741)#",
+				"-1767' UNION ALL SELECT CONCAT(0x444748656a70,0x764a62526741),CONCAT(0x444748656a70,0x764a62526741)#"
+		};
+		
+		boolean rs = false;
+		for (String kw : kws) {
+			rs = IPSecurityChecker.matches(kw);
+			System.out.println(kw + " -> " + rs);
+			Assert.assertFalse(rs);
+		}
+	}
+	
+	/**
+	 * JS脚本
+	 */
+	@Test
+	public void isTrue2() {
+		String[] kws = {
+				"79e774bd-c02e-32fa-bda5-eb7da9c95a54'><svg onload=prompt()>",
+				"79e774bd-c02e-32fa-bda5-eb7da9c95a54'><img src=x onerror=prompt()>",
+				"79e774bd-c02e-32fa-bda5-eb7da9c95a54'><iframe onload=alert()>"
+		};
+		
+		boolean rs = false;
+		for (String kw : kws) {
+			rs = IPSecurityChecker.matches(kw);
+			System.out.println(kw + " -> " + rs);
+			Assert.assertFalse(rs);
+		}
+	}
+	
+	/**
+	 * 系统命令
+	 */
+	@Test
+	public void isTrue3() {
+		String[] kws = {
+				"print(md5(this_is_a_test_string));die();/*",
+				"../../../../../../../../windows/win.ini.jpg",
+				"../../../../../../../../../../windows/win.ini00"
+		};
+		
+		boolean rs = false;
+		for (String kw : kws) {
+			rs = IPSecurityChecker.matches(kw);
+			System.out.println(kw + " -> " + rs);
+			Assert.assertFalse(rs);
+		}
+	}
+	
+	/**
+	 * 换行
+	 */
+	@Test
+	public void isTrue4() {
+		String[] kws = {
+				"abc\n123",
+				"abc\r123",
+				"abc\n123\r123"
+		};
+		
+		boolean rs = false;
+		for (String kw : kws) {
+			rs = IPSecurityChecker.matches(kw);
+			System.out.println(kw + " -> " + rs);
+			Assert.assertFalse(rs);
+		}
+	}
+
+	@Test
+	public void isFalse() {
+		String[] kws = {
+				"172.28.134.25,117.136.69.14, 10.40.40.11, 220.181.51.45",
+				"79e774bd-c02e-32fa-bda5-eb7da9c95a54i1223229i",
+				"203.208.60.54",
+				null,
+				"",
+				" ",
+				""
+		};
+		
+		boolean rs = false;
+		for (String kw : kws) {
+			rs = IPSecurityChecker.matches(kw);
+			System.out.println(kw + " -> " + rs);
+			Assert.assertTrue(rs);
+		}
+	}
+
+}

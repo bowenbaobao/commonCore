@@ -1,0 +1,327 @@
+package com.sekorm.common.util;
+
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Enumeration;
+import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang.StringUtils;
+
+/**
+ * 校验工具类
+ * 
+ * @author lanva_xu
+ * 
+ */
+public class WebUtils {
+
+//	private final Logger log = LoggerFactory.getLogger(this.getClass());
+
+	/**
+	 * @describe 校验手机号码
+	 * @auto lanva_xu
+	 * @date 2015年4月16日
+	 * @param mobile
+	 * @修改记录:
+	 *   1.增加154,184号码段 add by junfu_yuan 2016-01-14
+	 * @return
+	 */
+	public static boolean checkMobile(String mobile) {
+		Pattern pattern = Pattern
+				.compile("^0?(13[0-9]|15[0-9]|17[012356789]|18[0-9]|14[57])[0-9]{8}$");
+		Matcher matcher = pattern.matcher(mobile);
+		return matcher.matches();
+	}
+
+	/**
+	 * 校检手机号是否是11位数字
+	 * @param mobile
+	 * @return
+	 */
+	public static boolean checkMobileNum(String mobile) {
+		Pattern pattern = Pattern.compile("\\d{11}");
+		Matcher matcher = pattern.matcher(mobile);
+		return matcher.matches();
+	}
+
+	/**
+	 * @describe 校验邮箱
+	 * @auto lanva_xu
+	 * @date 2015年5月19日
+	 * @param email
+	 * @return
+	 */
+	public static boolean checkEmail(String email) {
+		Pattern pattern = Pattern
+				.compile("^([^\\u4E00-\\u9FA5\\s@]+)@([^\\u4E00-\\u9FA5\\s@\\.]+)(\\.[^\\u4E00-\\u9FA5\\s@\\.]+)+$");
+		Matcher matcher = pattern.matcher(email);
+		return matcher.matches() && email.length() < 51;
+	}
+	
+	/**
+	 * 
+	 * @describe 校验邮箱
+	 * 忽略邮箱的长度
+	 * @author cheney_zhang
+	 * @date 2015年7月17日
+	 * @param 
+	 * @return
+	 */
+	public static boolean checkEmailIgnoreLength(String email) {
+		Pattern pattern = Pattern
+				.compile("^([^\\u4E00-\\u9FA5\\s@]+)@([^\\u4E00-\\u9FA5\\s@\\.]+)(\\.[^\\u4E00-\\u9FA5\\s@\\.]+)+$");
+		Matcher matcher = pattern.matcher(email);
+		return matcher.matches();
+	}
+
+	/**
+	 * 防止SQL注入和XSS攻击
+	 * 
+	 * @param s
+	 * @return
+	 */
+	public static String xssEncode(String s) {
+		if (s == null || "".equals(s)) {
+			return s;
+		}
+		StringBuilder sb = new StringBuilder(s.length() + 16);
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			switch (c) {
+			case '>':
+				sb.append('＞');// 全角大于号
+				break;
+			case '<':
+				sb.append('＜');// 全角小于号
+				break;
+			case '\'':
+				sb.append('‘');// 全角单引号
+				break;
+			case '\"':
+				sb.append('“');// 全角双引号
+				break;
+			case '&':
+				sb.append('＆');// 全角
+				break;
+			case '\\':
+				sb.append('＼');// 全角斜线
+				break;
+			case '#':
+				sb.append('＃');// 全角井号
+				break;
+			case ';':
+				sb.append('；');
+				break;
+			default:
+				sb.append(c);
+				break;
+			}
+		}
+		String tempstr = sb.toString().toLowerCase();
+		if (tempstr.indexOf("script") != -1) {
+			sb.toString().replaceAll("script", "");
+		}
+		if (tempstr.indexOf("javascript") != -1) {
+			sb.toString().replaceAll("javascript", "");
+		}
+		if (tempstr.indexOf("vbscript") != -1) {
+			sb.toString().replaceAll("vbscript", "");
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * 隐藏邮箱
+	 * 
+	 * @param email
+	 * @return
+	 * @author qixueqing
+	 * @date2015年6月8日
+	 */
+	public static String hiddenEmail(String email) {
+		if (StringUtils.isBlank(email)) {
+			return email;
+		}
+		if (email.indexOf("@") == 0) {
+			return email;
+		}
+		String[] array = email.split("@");
+		if (array.length == 2) {
+			String prefix = array[0];
+			if (prefix.length() > 3) {
+				StringBuffer sb = new StringBuffer(prefix.replace(
+						prefix.substring(prefix.length() - 3), "***"));
+				return sb.append("@").append(array[1]).toString();
+			} else {
+				StringBuffer sb = new StringBuffer(prefix.substring(0, 1));
+				for (int i = 0; i < prefix.length() - 1; i++) {
+					sb.append("*");
+				}
+				return sb.append("@").append(array[1]).toString();
+			}
+		}
+		return email;
+
+	}
+
+	/**
+	 * 隐藏手机
+	 * 
+	 * @param email
+	 * @return
+	 * @author qixueqing
+	 * @date2015年6月8日
+	 */
+	public static String hiddenMobile(String mobile) {
+		if (StringUtils.isBlank(mobile)) {
+			return mobile;
+		}
+		StringBuffer sb = new StringBuffer(mobile.substring(0,3));
+		sb.append("*****").append(mobile.substring(mobile.length() - 3));
+		return sb.toString();
+
+	}
+
+	/**
+	 * 隐藏姓名
+	 * 
+	 * @param name
+	 * @return
+	 * @author qixueqing
+	 * @date2015年6月11日
+	 */
+	public static String hiddenName(String name) {
+		if (StringUtils.isBlank(name)) {
+			return name;
+		}
+		StringBuffer sb = new StringBuffer(name.substring(0, 1));
+		if(name.length()>2){
+			for (int i = 0; i < name.length() - 2; i++) {
+				sb.append("*");
+			}
+			sb.append(name.substring(name.length() - 1));
+		}else{
+			sb.append("*");
+		}
+		
+		return sb.toString();
+
+	}
+
+	/**
+	 * @describe 生成8为随机数
+	 * @author junfu_yuan
+	 * @date 2015年6月10日
+	 * @return
+	 */
+	public static int gen8RandomNum() {
+		return (int) (Math.random() * 90000000) + 10000000;
+	}
+
+	/**
+	 * @describe 增加like查询适配符
+	 * @author junfu_yuan
+	 * @date 2015年8月5日
+	 */
+	public static String addLikeParam(String value) {
+		return "%" + value + "%";
+	}
+
+	/**
+	 * @describe 获取随机数
+	 * @author junfu_yuan
+	 * @date 2015年11月14日
+	 * @param charCount
+	 * @return
+	 */
+	public static String getRandNum(int charCount) {
+		String charValue = "";
+		for (int i = 0; i < charCount; i++) {
+			char c = (char) (randomInt(0, 10) + '0');
+			charValue += String.valueOf(c);
+		}
+		return charValue;
+
+	}
+
+	public static int randomInt(int from, int to) {
+		Random r = new Random();
+		return from + r.nextInt(to - from);
+	}  
+ 
+    /**
+     * 根据ip对象获取mac地址
+     * @param ia
+     * @return
+     * @throws Exception
+     */
+    public static String getMACAddress(){
+    	try {
+    		Enumeration<NetworkInterface> allNetInterfaces = NetworkInterface.getNetworkInterfaces();  //获得网络接口  
+            InetAddress ip = null; //声明一个InetAddress类型ip地址  
+            InetAddress localIp = null;
+            while (allNetInterfaces.hasMoreElements()) //遍历所有的网络接口  
+            {  
+                NetworkInterface netInterface = allNetInterfaces.nextElement();  
+                Enumeration<InetAddress> addresses = netInterface.getInetAddresses(); //同样再定义网络地址枚举类  
+                while (addresses.hasMoreElements())  
+                {  
+                    ip = addresses.nextElement(); 
+                    if (ip != null && (ip instanceof Inet4Address) ) //InetAddress类包括Inet4Address和Inet6Address  
+                    {  
+                        if(ip.getHostAddress().indexOf("127.0.0.1")<0){
+                        	localIp = ip;
+                        }
+                    }   
+                }  
+            }
+	        //获得网络接口对象（即网卡），并得到mac地址，mac地址存在于一个byte数组中。  
+	        byte[] mac = NetworkInterface.getByInetAddress(localIp).getHardwareAddress();  
+	        //下面代码是把mac地址拼装成String  
+	        StringBuffer sb = new StringBuffer();  
+	          
+	        for(int i=0;i<mac.length;i++){  
+	            if(i!=0){  
+	                sb.append("-");  
+	            }  
+	            //mac[i] & 0xFF 是为了把byte转化为正整数  
+	            String s = Integer.toHexString(mac[i] & 0xFF);  
+	            sb.append(s.length()==1?0+s:s);  
+	        }  
+	          
+	        //把字符串所有小写字母改为大写成为正规的mac地址并返回  
+	        return sb.toString().toUpperCase(); 
+    	} catch (Exception e) {
+    		e.printStackTrace();
+		}
+		return null;
+    }  
+    
+    /**
+     * @describe  从字符中获取数字
+     *
+     * @author henley_lin
+     * @date   2017年3月14日
+     * @param
+     * @return 
+     */
+    public static Integer getNumberInString(String str){
+    	String regEx="[^0-9]";   
+		Pattern p = Pattern.compile(regEx);   
+		Matcher m = p.matcher(str);   
+		try{
+			return Integer.parseInt(m.replaceAll("").trim());
+		}catch(Exception e){
+			return 0;
+		}		
+    }
+
+	public static void main(String[] args) {
+//		System.out.println(isMobileDevice("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5)"));
+		System.out.println(checkMobileNum("12332134566"));
+	}
+
+}

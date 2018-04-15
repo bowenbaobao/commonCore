@@ -1,0 +1,136 @@
+package com.sekorm.common.util;
+
+/**
+ * 将汉字转换成拼音首字母工具类 
+ */
+public class Gb2AlphaUtil {  
+
+	//汉字数组，字母Z使用了两个标签，这里有27个值,I, U, V都不做声母, 跟随前面的字母   
+	private char[] gbArray =  
+		{  
+			'啊', '芭', '擦', '搭', '蛾', '发', '噶', '哈', '哈',  
+			'击', '喀', '垃', '妈', '拿', '哦', '啪', '期', '然',  
+			'撒', '塌', '塌', '塌', '挖', '昔', '压', '匝', '座'  
+		};
+
+	//英文字母数组
+	private char[] alphaArray =  
+		{  
+			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',  
+			'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',   
+			'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'  
+		};  
+
+
+	private int[] array = new int[27];  
+	//初始化  
+	{  
+		for (int i = 0; i < 27; ++i) {  
+			array[i] = getGbNo(gbArray[i]);  
+		}  
+	}  
+
+	public Gb2AlphaUtil() {  
+	}  
+
+
+	private boolean match(int i, int gb) {  
+
+		if (gb < array[i])  
+			return false;  
+		int j = i + 1;  
+
+		//字母Z使用了两个标签  
+		while (j < 26 && (array[j] == array[i])) ++j;  
+		if (j == 26)  
+			return gb <= array[j];  
+		else  
+			return gb < array[j];  
+	}  
+
+	/**
+	 * 取出汉字的编码 
+	 * @param ch 字符
+	 * @return int 编码
+	 */
+	private int getGbNo(char ch) {  
+
+		String str = new String();  
+		str += ch;  
+		try {  
+			byte[] bytes = str.getBytes("GB2312");  
+			if (bytes.length < 2)  
+				return 0;  
+			return (bytes[0] << 8 & 0xff00) + (bytes[1] &  
+					0xff);  
+		} catch (Exception e) {  
+			return 0;  
+		}  
+	}  
+
+
+	/**
+	 * 根据字符得到其声母,英文字母返回对应的大写字母,其他非简体汉字返回 '0' 
+	 * @param ch 字符
+	 * @return char 声母
+	 */
+	private char char2Alpha(char chr) {  
+
+		if (chr >= 'a' && chr <= 'z')  
+			return (char) (chr - 'a' + 'A');  
+		if (chr >= 'A' && chr <= 'Z')  
+			return chr;  
+		int gb = getGbNo(chr);  
+		if (gb < array[0])  
+			return '0';  
+		int i;  
+		for (i = 0; i < 26; ++i) {  
+			if (match(i, gb)) break;  
+		}  
+		if (i >= 26)  
+			return '0';  
+		else  
+			return alphaArray[i];  
+	}  
+
+	/**
+	 * 根据词语返回每个汉字拼音首字母的字符串 
+	 * @param ch 词语
+	 * @return char 声母
+	 */
+	public String string2Alpha(String str){  
+
+		String result = "";  
+		int length = str.length();  
+		int i;  
+		try {  
+			for (i = 0; i < length; i++) {  
+				result += char2Alpha(str.charAt(i));  
+			}  
+		} catch (Exception e) {  
+			result = "";  
+		}  
+		return result;  
+	}  
+
+	/**
+	 * 根据词语返回第一个汉字拼音首字母的字符串 
+	 * @param ch 词语
+	 * @return char 声母
+	 */
+	public String getFirstAlpha(String str){  
+		String result = "";  
+		result = string2Alpha(str);
+		if(result!=null && !result.trim().equals("")){
+			result = result.substring(0,1);
+		}
+		return result;  
+	}  
+
+	public static void main(String[] args) throws Exception{  
+
+		Gb2AlphaUtil obj = new Gb2AlphaUtil();  
+		System.out.println(obj.getFirstAlpha("abc"));  
+		System.out.println(obj.string2Alpha("中国"));  
+	}  
+}  

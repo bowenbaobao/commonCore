@@ -1,0 +1,120 @@
+package com.sekorm.common.util;
+
+import org.apache.commons.lang.math.RandomUtils;
+
+public class IDCryproUtils {
+	private IDCryproUtils(){}
+	
+	private static final char[] INTTOCHAR = "ACEGOPTWXY".toCharArray();
+	private static final char[] AZ = "ABCDEF917JKLMN852RSTUVWXYZ".toCharArray();
+	private static final int PREFIX_SALT_LEN = 3;
+	private static final int BEHIND_SALT_LEN = 3;
+	
+	/**
+	 * URL Id 隐藏编码
+	 *
+	 * @author charles_shang
+	 * @date 2017年4月25日
+	 *
+	 * @param id	数据ID
+	 * @return
+	 */
+	public static String encode(Integer id){
+		if (id == null) {
+			return null;
+		}
+		
+		String idStr = id.toString();
+		char c;
+		StringBuffer idBuf = new StringBuffer();
+		for (int i = 0; i < idStr.length(); i++) {
+			c = idStr.charAt(i);
+			int ci = Character.getNumericValue(c);
+			idBuf.append(INTTOCHAR[ci]);
+		}
+		
+//		System.out.println(idBuf);
+		
+		String finalStr = getRadomSalts(PREFIX_SALT_LEN) + idBuf.toString() + getRadomSalts(BEHIND_SALT_LEN);
+				
+		
+		return finalStr;
+	}
+	
+	private static String getRadomSalts(Integer len){
+		int i = 0;
+		StringBuffer sbf = new StringBuffer();
+		while(i < len) {
+			int j = RandomUtils.nextInt(26);
+			sbf.append(AZ[j]);
+			i++;
+		}
+		
+		return sbf.toString();
+	}
+	
+	/**
+	 * 解码id编码串
+	 *
+	 * @author charles_shang
+	 * @date 2017年4月25日
+	 *
+	 * @param encodeStr
+	 * @return
+	 */
+	public static Integer decode(String encodeStr){
+		if (StringUtils.isBlank(encodeStr)) {
+			return null;
+		} else if (StringUtils.isNumeric(encodeStr)) {
+			return Integer.valueOf(encodeStr);
+		} 
+		Integer encodeLen = encodeStr.length();
+		if (encodeLen < 7 || encodeLen > (10 + PREFIX_SALT_LEN + BEHIND_SALT_LEN)){
+			return null;
+		} else if (!checkSaltValid(encodeStr.substring(0, PREFIX_SALT_LEN))) {
+			return null;
+		} else if (!checkSaltValid(encodeStr.substring(encodeLen - BEHIND_SALT_LEN, encodeLen))) {
+			return null;
+		}
+		
+		String idStr = encodeStr.substring(PREFIX_SALT_LEN, (encodeStr.length() - BEHIND_SALT_LEN));
+		
+		String intToChar = new String(INTTOCHAR);
+		
+		char c;
+		int d;
+		StringBuffer itc = new StringBuffer();
+		for (int i = 0; i < idStr.length(); i++) {
+			c = idStr.charAt(i);
+			if ((d = intToChar.indexOf(c)) == -1) {
+				return null;
+			}
+			itc.append(d);
+		}
+		
+		
+		return Integer.valueOf(itc.toString());
+	}
+	
+	private static Boolean checkSaltValid(String salts){
+		String saltsStr = new String(AZ);
+		char c;
+		for (int i = 0; i < salts.length(); i++) {
+			c = salts.charAt(i);
+			if (saltsStr.indexOf(c) == -1) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	public static void main(String[] args){
+		Integer a = 1234567890;
+		String b = "A9CCEGOPTAXYCB9D";
+		
+		System.out.println(IDCryproUtils.encode(a));
+		System.out.println(IDCryproUtils.decode(b));
+//		System.out.println(getRadomSalts(3));
+	}
+}

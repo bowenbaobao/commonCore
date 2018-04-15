@@ -1,0 +1,319 @@
+package com.sekorm.common.util;
+
+import java.awt.image.BufferedImage;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.sekorm.common.util.crypto.Md5Util;
+
+
+/**
+ * 文件的移动、复制、删除操作的工具类
+ * 
+ * @author zhangqing
+ * @since 1.0
+ */
+public class FileUtils {
+	private final static Logger logger = LoggerFactory
+			.getLogger(FileUtils.class);
+
+	/**
+	 * 文件移动
+	 * 
+	 * @param srcFile
+	 *            源文件
+	 * @param destPath
+	 *            目标路径
+	 * @return
+	 */
+	public static boolean move(File srcFile, String destPath) {
+		if (srcFile.exists() && srcFile.isFile()
+				&& StringUtils.isNotEmpty(destPath)) {
+			File dir = new File(destPath);
+			if (!dir.exists() || dir.isFile()) {
+				dir.mkdirs();
+			}
+
+			// 如果目标文件夹下文件已存在，则先删除
+			File destFile = new File(dir, srcFile.getName());
+			if (destFile.exists() && destFile.isFile()) {
+				destFile.delete();
+			}
+
+			return srcFile.renameTo(destFile);
+		} else {
+			return false;
+		}
+	}
+
+	/**
+	 * 文件移动
+	 * 
+	 * @param srcFileString
+	 *            源文件路径名字符串
+	 * @param destPath
+	 *            目标路径
+	 * @return
+	 */
+	public static boolean move(String srcFileString, String destPath) {
+		File srcFile = new File(srcFileString);
+		return move(srcFile, destPath);
+	}
+
+	/**
+	 * 文件删除
+	 * 
+	 * @param f
+	 *            文件
+	 * @return
+	 */
+	public static boolean delete(File f) {
+		if (f.exists() && f.isFile()) {
+			f.delete();
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 文件删除
+	 * 
+	 * @param fileString
+	 *            文件路径名字符串
+	 * @return
+	 */
+	public static boolean delete(String fileString) {
+		File f = new File(fileString);
+		return delete(f);
+	}
+
+	/**
+	 * 遍历文件夹下指定后缀的文件
+	 * 
+	 * @param path
+	 *            文件夹路径
+	 * @param extendName
+	 *            扩展名
+	 * @return 文件列表
+	 */
+	public static List<String> getAllFiles(String path, String extendName) {
+		List<String> af = new ArrayList<String>();
+
+		if (StringUtils.isNotEmpty(path) && StringUtils.isNotEmpty(extendName)) {
+
+			File folder = new File(path);
+
+			if (folder.isDirectory()) {
+
+				File[] files = folder.listFiles();
+				for (File f : files) {
+					if (f.isFile()) {
+						// 将文件名和后缀都变成小写，在比较后缀
+						String absPath = f.getAbsolutePath().toLowerCase();
+						String ext = extendName.toLowerCase();
+						if (absPath.endsWith(ext)) {
+							af.add(f.getAbsolutePath());
+						}
+					}
+				}
+			}
+		}
+		return af;
+	}
+
+	/**
+	 * 
+	 * @Description : 返回文件服务器图片
+	 * @author : levis_huang
+	 * @date : 2015年6月5日 下午6:03:31
+	 * @param fileName
+	 * @param response
+	 * @throws MalformedURLException
+	 */
+	public static void downloadNetFile(String httpFilePath, String newFileName,
+			HttpServletResponse response) throws MalformedURLException {
+
+		URL url = new URL(httpFilePath);
+		InputStream is = null;
+		try {
+			URLConnection conn = url.openConnection();
+			is = conn.getInputStream();
+
+			response.setContentType(response.getContentType());
+			response.setContentLength(url.openConnection().getContentLength());
+			response.addHeader("Content-Disposition", "attachment; filename=\""
+					+ newFileName + "\"");
+			byte[] b = new byte[1024];
+			int len = 0;
+			try {
+				while ((len = is.read(b)) != -1) {
+					response.getOutputStream().write(b, 0, len);
+				}
+				is.close();
+			} catch (IOException se) {
+				logger.info("客户端断开连接：" + se.getMessage());
+				if (is != null) {
+					is.close();
+				}
+			} catch (Exception e) {
+				if (is != null) {
+					is.close();
+				}
+			}
+		} catch (Exception e) {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+			logger.info("获取文件失败:" + e.getMessage());
+		}
+	}
+	
+	/**
+	 * 
+	 * @Description : 返回文件服务器文件
+	 * @author nich_zou
+	 * @date : 2015年12月18日
+	 * @param httpFilePath 文件路径
+	 * @param newFileName 下载文件名
+	 * @return 是否流输出完毕(兼容部分浏览器连续多次下载请求问题)
+	 * @throws MalformedURLException
+	 */
+	public static boolean downloadAppFile(String httpFilePath, String newFileName,
+			HttpServletResponse response) throws MalformedURLException {
+
+		URL url = new URL(httpFilePath);
+		InputStream is = null;
+		boolean isDone=false;
+		try {
+			URLConnection conn = url.openConnection();
+			is = conn.getInputStream();
+			response.setContentType(response.getContentType());
+			response.setContentLength(url.openConnection().getContentLength());
+			response.addHeader("Content-Disposition", "attachment; filename=\""
+					+ newFileName + "\"");
+			byte[] b = new byte[1024];
+			int len = 0;
+			try {
+				while ((len = is.read(b)) != -1) {
+					response.getOutputStream().write(b, 0, len);
+				}
+				//流输出完后置true
+				isDone=true;
+			} catch (IOException se) {
+				logger.info("客户端断开连接：" + se.getMessage());
+			} 
+		} catch (Exception e) {
+			logger.info("获取文件失败:" + e.getMessage());
+		}finally{
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		}
+		return isDone;
+	}
+	
+	/**
+	 * 关闭流对象
+	 * @param c 对象
+	 */
+	public static void close(Closeable c) {
+		if (c == null) {
+			return;
+		}
+		
+		try {
+			c.close();
+		} catch (IOException e) {
+			logger.error("流关闭不成功", e);
+		}
+	}
+	
+		
+	/**
+	 * @describe  获取图片文件原图宽高
+	 *
+	 * @author henley_lin
+	 * @date   2017年3月14日
+	 * @param
+	 * @return 
+	 */
+	public static Map<String, Integer> getImgWidthHeight(String imgFile){		
+		File picture = new File(imgFile);
+		Integer width = 0;
+		Integer height = 0;
+		if (picture.exists()){
+			try {
+				BufferedImage sourceImg = ImageIO.read(new FileInputStream(picture));
+				width = sourceImg.getWidth();
+				height = sourceImg.getHeight();
+			}catch(IOException e){e.printStackTrace();}
+		}
+
+		Map<String, Integer> res = new HashMap<String, Integer>();
+		res.put("w", width);
+		res.put("h", height);
+
+		return res;
+	}
+	
+	/**
+	   * 取文件的MD5码
+	   * @param 文件路径 
+	   * @return   
+	   */	  
+	  public static String getFileMD5(String filePath){
+		  String fileMd5="";
+		  if (StringUtils.isEmpty(filePath))return fileMd5;
+		  FileInputStream is=null;
+		  try {				
+				 is=new FileInputStream(new File(filePath));
+				 
+				 if(is !=null)fileMd5=Md5Util.toMd5(is);
+				
+			 } catch (Exception e) {
+				e.printStackTrace();
+			 }finally{
+				if(is != null)
+					try {
+						is.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+			}
+		  
+		    return fileMd5;
+	  }
+
+	public static void main(String[] arg) throws Exception {
+		List<String> lst = FileUtils.getAllFiles("c:", "jpg");
+		for (String str : lst) {
+			System.out.println("=============" + str);
+		}
+	}
+}
